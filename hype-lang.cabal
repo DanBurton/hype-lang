@@ -1,0 +1,20 @@
+name:                hype-lang
+version:             0.1.0.0
+synopsis:            A library for manipulating the Hype language's AST
+
+-- description:         
+
+homepage:            http://github.com/DanBurton/hype-lang
+license:             BSD3
+license-file:        LICENSE
+author:              Dan Burton
+maintainer:          danburton.email@gmail.com
+copyright:           (c) Dan Burton 2012
+
+category:            Language
+build-type:          Simple
+cabal-version:       >=1.8
+
+library
+  exposed-modules:     Hype.Syntax, Hype.Pretty, Hype.Parse
+  build-depends:       base >= 4.4 && < 4.6, parsec == 3.1.*
