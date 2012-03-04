@@ -41,11 +41,19 @@ instance Show Type where
 instance Show TypeName where
   show (TypeName n) = n
 
+instance Show DefHead where
+  show (DefHead n ty) = show n ++ " : " ++ show ty
+
 instance Show Def where
-  show _ = "Def\n\n"
+  show (Def h ls) =
+    case h of
+      Just h' -> show h' ++ "\n"
+      Nothing -> ""
+    ++ (unlines $ map show ls)
 
 instance Show DefLine where
-  show _ = "DefLine"
+  show (DefLine lhs rhs) =
+    show lhs ++ " = " ++ show rhs
 
 instance Show LHS where
   show (Projection p f as) =

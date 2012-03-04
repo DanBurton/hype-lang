@@ -5,9 +5,13 @@ data DefLine = DefLine
   , defRhs :: Expression
   }
 
-data Def = Def
+data DefHead = DefHead
   { defName :: Identifier
   , defType :: Type
+  }
+
+data Def = Def
+  { defHead :: Maybe DefHead
   , defLines :: [DefLine]
   }
 

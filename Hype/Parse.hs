@@ -3,6 +3,7 @@ module Hype.Parse where
 import Hype.Syntax
 import Text.Parsec hiding (space)
 import Control.Applicative ((<$>))
+import Data.Char (isUpper)
 
 loadHype :: String -> IO (Either ParseError Hype)
 loadHype file = parse hypeP file <$> readFile file
@@ -27,8 +28,10 @@ space' = skip space
 parens = between (char '(') (char ')')
 braces = between (char '{') (char '}')
 
+reservedChars = ". {}()[]#\n\t="
+
 identifierCharP :: Parser Char
-identifierCharP = noneOf ". {}()[]#\n\t"
+identifierCharP = noneOf reservedChars
 
 wordStartsWith :: Parser Char -> Parser String
 wordStartsWith f = do
@@ -37,7 +40,8 @@ wordStartsWith f = do
   return (c : cs)
 
 upperWord = wordStartsWith upper
-lowerWord = wordStartsWith lower
+lowerWord = wordStartsWith (satisfy (\c -> not (isUpper c)
+                                           && c `notElem` reservedChars))
 
 
 hypeP :: Parser Hype
@@ -49,6 +53,7 @@ hypeP = (<?> "Hype program") $ do
   newline'
   string' "#Definitions\n\n"
   ds <- many defP
+  eof
   return $ Hype m tys ds
 
 moduleP :: Parser String
@@ -95,43 +100,54 @@ identifierP :: Parser Identifier
 identifierP = Identifier <$> lowerWord
 
 typeP :: Parser Type
-typeP = Type <$> many1 (noneOf ". {}[]\n\t")
+typeP = chainl1 typeP' typeAppP <?> "Type"
+  where typeAppP = space' >> return typeAppend
+        typeAppend (Type a) (Type b) = Type (a ++ " " ++ b)
 
+typeP' :: Parser Type
+typeP' = Type <$> many1 (noneOf ". {}[]\n\t") <?> "Single type"
+
+defHeadP :: Parser DefHead
+defHeadP = (<?> "function type declaration") $ do
+  n <- identifierP
+  string' " : "
+  t <- typeP
+  newline'
+  return $ DefHead n t
 
 defP :: Parser Def
 defP = (<?> "function definition") $ do
-  n <- identifierP
-  t <- typeP
-  newline'
+  h <- optionMaybe $ try defHeadP
   ds <- many1 defLineP
   newline'
-  return $ Def n t ds
+  return $ Def h ds
 
 defLineP :: Parser DefLine
 defLineP = (<?> "function definition line") $ do
   lhs <- lhsP
-  space'
-  char' '='
-  space'
+  string' "= "
   e <- exprP
   newline'
   return $ DefLine lhs e
 
 lhsP :: Parser LHS
-lhsP = try lhsProjP <|> try lhsNoProjP <?> "lhs"
+lhsP = try lhsProjP <|> lhsNoProjP <?> "lhs"
+
+lhsArgsP :: Parser [Binding]
+lhsArgsP = space' >> bindingP `endBy` space
 
 lhsProjP :: Parser LHS
 lhsProjP = do
   n <- bindingP
   char '.'
   f <- identifierP
-  bs <- option [] $ space' >> bindingP `sepBy` space
+  bs <- lhsArgsP
   return $ Projection n f bs
 
 lhsNoProjP :: Parser LHS
 lhsNoProjP = do
   f <- identifierP
-  bs <- option [] $ space' >> bindingP `sepBy` space
+  bs <- lhsArgsP
   return $ NonProjection f bs
 
 bindingP :: Parser Binding

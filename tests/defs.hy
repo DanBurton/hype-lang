@@ -13,10 +13,6 @@ Bool
 
 #Definitions
 
-! : Bool -> Bool
-! True = False
-! False = True
-
 plus : Nat -> Nat -> Nat
 Z.plus m = m
 n.plus Z = n
@@ -26,4 +22,8 @@ times : Nat -> Nat -> Nat
 Z.times _ = Z
 _.times Z = Z
 S{n}.times m = m.plus (n.times m)
+
+! : Bool -> Bool
+! True = False
+! False = True
 
